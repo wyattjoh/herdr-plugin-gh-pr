@@ -1,6 +1,6 @@
 id = "gh-pr"
 name = "GitHub PR Status"
-version = "0.1.0"
+version = "0.1.0" # x-release-please-version
 min_herdr_version = "0.7.0"
 description = "Labels the focused agent pane's sidebar row with its branch's GitHub PR status."
 platforms = ["macos", "linux"]
