@@ -34,6 +34,14 @@ test("composeLabel omits the CI symbol when there are no checks", () => {
   expect(composeLabel(7, "none")).toBe("#7");
 });
 
+test("composeLabel shows a merged PR icon instead of CI status", () => {
+  expect(composeLabel(9, "fail", "MERGED")).toBe("#9 ◆");
+});
+
+test("composeLabel shows a closed PR icon instead of CI status", () => {
+  expect(composeLabel(9, "pending", "CLOSED")).toBe("#9 ⊘");
+});
+
 test("parsePrNumber extracts the number from an existing label", () => {
   expect(parsePrNumber("#123 ✓")).toBe(123);
   expect(parsePrNumber("#7 ⟳")).toBe(7);

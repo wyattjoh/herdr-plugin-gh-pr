@@ -6,7 +6,7 @@ A herdr plugin (v0.7.0+) that labels the focused **agent** pane's sidebar row wi
 
 herdr exposes no overlay, status bar, or corner UI, and no background daemon. The only persistent ambient surface is the per-pane sidebar `custom_status` label (`pane.report_metadata`), which renders only for panes with a detected agent. Workspaces and tabs have no equivalent status-label mechanism (custom_status is pane-only), so the label lives on the agent pane. So this plugin is event-driven: herdr invokes `bin/update-pr-status.ts` on `pane.focused`, `worktree.opened`, and `worktree.created`. The script resolves the focused pane's cwd, derives the branch, queries `gh`, and writes the label.
 
-While a refresh is in flight, the pane's icon is swapped for `⟳` (the PR number is kept), then it settles to the final CI symbol.
+While a refresh is in flight, the pane's icon is swapped for `⟳` (the PR number is kept), then it settles to a terminal PR symbol (`◆` merged, `⊘` closed) or the final CI symbol.
 
 The automatic (event) path is throttled to one gh check per pane every `THROTTLE_WINDOW_MS` (30s), tracked via per-pane timestamp files under `HERDR_PLUGIN_STATE_DIR` (see `src/throttle.ts`). The manual refresh action sets `HERDR_PLUGIN_ACTION_ID`, which the entrypoint turns into `force = true` to bypass the throttle.
 
