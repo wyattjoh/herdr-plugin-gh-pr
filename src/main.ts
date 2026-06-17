@@ -1,5 +1,12 @@
 import { $ } from "bun";
-import { composeLabel, parsePrNumber, refreshingLabel, rollupChecks, type Check } from "./label";
+import {
+  composeLabel,
+  parsePrNumber,
+  refreshingLabel,
+  rollupChecks,
+  type Check,
+  type PullRequestState,
+} from "./label";
 import { lastCheckMs, recordCheck, THROTTLE_WINDOW_MS, throttleElapsed } from "./throttle";
 
 const SOURCE = "gh-pr";
@@ -19,6 +26,11 @@ interface Pane {
   paneId: string;
   cwd: string;
   currentStatus?: string;
+}
+
+interface PullRequest {
+  number: number;
+  state: PullRequestState;
 }
 
 // Resolve a pane id, working directory, and current label from herdr. With no
@@ -54,13 +66,15 @@ async function currentBranch(cwd: string): Promise<string | null> {
   return name;
 }
 
-// PR number for the branch, or null when the branch has no PR.
-async function prNumber(cwd: string, branch: string): Promise<number | null> {
-  const out = await $`gh pr view ${branch} --json number`.cwd(cwd).nothrow().quiet();
+// PR identity for the branch, or null when the branch has no PR.
+async function prInfo(cwd: string, branch: string): Promise<PullRequest | null> {
+  const out = await $`gh pr view ${branch} --json number,state`.cwd(cwd).nothrow().quiet();
   if (out.exitCode !== 0) return null;
   try {
-    const data = JSON.parse(out.stdout.toString()) as { number: number };
-    return typeof data.number === "number" ? data.number : null;
+    const data = JSON.parse(out.stdout.toString()) as { number: number; state?: string };
+    if (typeof data.number !== "number") return null;
+    const state = data.state === "CLOSED" || data.state === "MERGED" ? data.state : "OPEN";
+    return { number: data.number, state };
   } catch {
     return null;
   }
@@ -110,15 +124,20 @@ export async function run(targetPaneId?: string, force = false): Promise<void> {
     await setLabel(pane.paneId, refreshingLabel(previous));
   }
 
-  const number = await prNumber(pane.cwd, branch);
-  if (number === null) {
+  const pr = await prInfo(pane.cwd, branch);
+  if (pr === null) {
     // Branch has no PR, show nothing rather than a stale label.
     await clearLabel(pane.paneId);
     return;
   }
 
+  if (pr.state !== "OPEN") {
+    await setLabel(pane.paneId, composeLabel(pr.number, "none", pr.state));
+    return;
+  }
+
   const checks = await prChecks(pane.cwd, branch);
-  const label = composeLabel(number, rollupChecks(checks));
+  const label = composeLabel(pr.number, rollupChecks(checks));
   await setLabel(pane.paneId, label);
 }
 

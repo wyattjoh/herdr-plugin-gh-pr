@@ -6,6 +6,11 @@ export interface Check {
 
 export type CiRollup = "pass" | "fail" | "pending" | "none";
 
+/**
+ * GitHub pull request lifecycle state used for sidebar label composition.
+ */
+export type PullRequestState = "OPEN" | "CLOSED" | "MERGED";
+
 // Collapse per-check buckets into one rollup, worst-status-wins.
 // gh's buckets are: pass, fail, pending, skipping, cancel.
 export function rollupChecks(checks: Check[]): CiRollup {
@@ -21,6 +26,11 @@ const CI_SYMBOL: Record<CiRollup, string> = {
   fail: "✗",
   pending: "●",
   none: "",
+};
+
+const TERMINAL_PR_SYMBOL: Record<Exclude<PullRequestState, "OPEN">, string> = {
+  MERGED: "◆",
+  CLOSED: "⊘",
 };
 
 // Glyph shown in place of the CI symbol while the status is being recomputed.
@@ -39,9 +49,18 @@ export function refreshingLabel(prNumber: number): string {
   return `#${prNumber} ${REFRESHING}`;
 }
 
-// "#123 ✓". Just the PR number and a CI rollup symbol, kept short for the
-// sidebar. The CI symbol is omitted when there are no checks.
-export function composeLabel(prNumber: number, ci: CiRollup): string {
+/**
+ * Compose the concise PR sidebar label from a PR number, CI rollup, and PR state.
+ */
+export function composeLabel(
+  prNumber: number,
+  ci: CiRollup,
+  prState: PullRequestState = "OPEN",
+): string {
+  if (prState !== "OPEN") {
+    return `#${prNumber} ${TERMINAL_PR_SYMBOL[prState]}`;
+  }
+
   const symbol = CI_SYMBOL[ci];
   return symbol ? `#${prNumber} ${symbol}` : `#${prNumber}`;
 }
