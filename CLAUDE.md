@@ -8,6 +8,8 @@ herdr exposes no overlay, status bar, or corner UI, and no background daemon. Th
 
 While a refresh is in flight, the pane's icon is swapped for `⟳` (the PR number is kept), then it settles to the final CI symbol.
 
+The automatic (event) path is throttled to one gh check per pane every `THROTTLE_WINDOW_MS` (30s), tracked via per-pane timestamp files under `HERDR_PLUGIN_STATE_DIR` (see `src/throttle.ts`). The manual refresh action sets `HERDR_PLUGIN_ACTION_ID`, which the entrypoint turns into `force = true` to bypass the throttle.
+
 Actions: `refresh` re-runs the labeler on demand; `open-pr` opens the focused pane's branch PR in the browser (`bin/open-pr.ts`). herdr has no plugin-extensible right-click menu, so actions surface via the CLI or a `plugin_action` keybinding, not a context menu.
 
 Manifest commands invoke `bun` explicitly (`["bun", "bin/..."]`) rather than relying on the script shebang + execute bit, which is undocumented for GitHub installs. Action `contexts` is `["workspace"]` (the only doc-confirmed value); the actions self-resolve the focused pane via `pane.current`, so they do not need a pane-scoped context. The plugin is single-file and dependency-free, so there is no `[[build]]` step.

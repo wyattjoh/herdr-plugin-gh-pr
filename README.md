@@ -29,7 +29,7 @@ That is the entire install. No daemon, no config. herdr runs the hooks with `bun
 
 ## Use
 
-Focus an agent pane sitting in a git repo whose branch has a PR. The label appears and refreshes when you switch panes or open/create worktrees. To refresh CI status while staying on one pane (herdr has no background poll), run:
+Focus an agent pane sitting in a git repo whose branch has a PR. The label appears and refreshes when you switch panes or open/create worktrees. To avoid hammering the GitHub API, the automatic path checks at most once per pane every 30 seconds; a manual refresh (below) always updates immediately. To refresh CI status while staying on one pane (herdr has no background poll), run:
 
 ```bash
 herdr plugin action invoke gh-pr.refresh

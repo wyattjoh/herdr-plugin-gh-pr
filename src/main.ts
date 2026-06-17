@@ -1,5 +1,6 @@
 import { $ } from "bun";
 import { composeLabel, parsePrNumber, refreshingLabel, rollupChecks, type Check } from "./label";
+import { lastCheckMs, recordCheck, THROTTLE_WINDOW_MS, throttleElapsed } from "./throttle";
 
 const SOURCE = "gh-pr";
 
@@ -85,9 +86,15 @@ async function clearLabel(paneId: string): Promise<void> {
   await $`herdr pane report-metadata ${paneId} --source ${SOURCE} --clear-custom-status`.nothrow().quiet();
 }
 
-export async function run(targetPaneId?: string): Promise<void> {
+export async function run(targetPaneId?: string, force = false): Promise<void> {
   const pane = await resolvePane(targetPaneId);
   if (!pane) return;
+
+  // Throttle the automatic (focus/worktree) path to one gh check per pane per
+  // window. Manual refreshes pass force=true and always run.
+  const now = Date.now();
+  if (!force && !throttleElapsed(lastCheckMs(pane.paneId), now, THROTTLE_WINDOW_MS)) return;
+  recordCheck(pane.paneId, now);
 
   const branch = await currentBranch(pane.cwd);
   if (!branch) {
