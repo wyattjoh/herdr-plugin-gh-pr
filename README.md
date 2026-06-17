@@ -33,7 +33,7 @@ To open the focused pane's branch PR in the browser:
 herdr plugin action invoke gh-pr.open-pr
 ```
 
-The qualified action id uses a dot (`gh-pr.open-pr`), not a slash. herdr has no plugin-extensible right-click menu, so to trigger an action with a keystroke, bind it in `~/.config/herdr/config.toml` and run `herdr server reload-config`:
+The qualified action id uses a dot (`gh-pr.open-pr`), not a slash. herdr has no plugin-extensible right-click menu, and a plugin cannot ship its own keybinding (the manifest has no `key` field and keybindings live only in the user's config). So to trigger an action with a keystroke, the user binds it in `~/.config/herdr/config.toml` and runs `herdr server reload-config`:
 
 ```toml
 [[keys.command]]
