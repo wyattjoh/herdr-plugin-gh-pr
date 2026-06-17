@@ -5,33 +5,37 @@ min_herdr_version = "0.7.0"
 description = "Labels the focused agent pane's sidebar row with its branch's GitHub PR status."
 platforms = ["macos", "linux"]
 
+# Commands are run directly (no shell), so bun is invoked explicitly rather than
+# relying on the script's shebang + execute bit (undocumented for GitHub installs).
+
 # Refresh when the user switches panes.
 [[events]]
 on = "pane.focused"
-command = ["bin/update-pr-status.ts"]
+command = ["bun", "bin/update-pr-status.ts"]
 
 # Refresh when a worktree (branch) is opened or created.
 [[events]]
 on = "worktree.opened"
-command = ["bin/update-pr-status.ts"]
+command = ["bun", "bin/update-pr-status.ts"]
 
 [[events]]
 on = "worktree.created"
-command = ["bin/update-pr-status.ts"]
+command = ["bun", "bin/update-pr-status.ts"]
 
 # Manual refresh, covers updating CI status while idle on one pane
-# (herdr has no background-poll mechanism).
+# (herdr has no background-poll mechanism). The command reads the focused pane
+# via pane.current, so the action does not depend on a pane-scoped context.
 [[actions]]
 id = "refresh"
 title = "Refresh PR status"
-contexts = ["pane"]
-command = ["bin/update-pr-status.ts"]
+contexts = ["workspace"]
+command = ["bun", "bin/update-pr-status.ts"]
 
 # Open the focused pane's branch PR in the browser. herdr has no
 # plugin-extensible right-click menu, so bind this to a key or invoke it via
-# `herdr plugin action invoke gh-pr/open-pr`.
+# `herdr plugin action invoke gh-pr.open-pr`.
 [[actions]]
 id = "open-pr"
 title = "Open PR in browser"
-contexts = ["pane"]
-command = ["bin/open-pr.ts"]
+contexts = ["workspace"]
+command = ["bun", "bin/open-pr.ts"]

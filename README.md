@@ -1,6 +1,6 @@
 # herdr-plugin-gh-pr
 
-Shows the GitHub PR status of the focused **agent** pane's current git branch as a label on that pane's row in the herdr sidebar. The label reads like `#123 ✓` (the PR number plus a CI rollup symbol: ✓ passing, ✗ failing, ● pending, and no symbol when there are no checks).
+Shows the GitHub PR status of the focused **agent** pane's current git branch as a label on that pane's row in the herdr sidebar. The label reads like `#123 ✓` (the PR number plus a CI rollup symbol: ✓ passing, ✗ failing, ● pending, and no symbol when there are no checks). While the status is being recomputed, the symbol is replaced with `⟳`.
 
 ## Why a sidebar label and not a top-right overlay
 
@@ -13,11 +13,19 @@ herdr (v0.7.0) has no overlay, status bar, or corner-pinnable UI, and no plugin 
 
 ## Install
 
+From GitHub (your local git must have access, the repo is private):
+
+```bash
+herdr plugin install wyattjoh/herdr-plugin-gh-pr
+```
+
+Or link a local checkout for development:
+
 ```bash
 herdr plugin link /path/to/herdr-plugin-gh-pr
 ```
 
-That is the entire install. No daemon, no config.
+That is the entire install. No daemon, no config. herdr runs the hooks with `bun`, so `bun` must be on your PATH.
 
 ## Use
 

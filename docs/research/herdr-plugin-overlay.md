@@ -372,11 +372,118 @@ https://herdr.dev/docs/plugins/ (manifest section types).
    user-started process is unacceptable, accept event-only refresh (c) and drop or coarsen the CI
    poll (e.g. refresh CI lazily on each focus event instead of on a timer).
 
+## Pre-publish review: plugins + marketplace
+
+Re-reviewed https://herdr.dev/docs/plugins/ and https://herdr.dev/docs/marketplace/ for publish
+readiness. **Biggest flag first:** the marketplace/discovery path requires a **public** repo, which
+conflicts with the stated "publish as a private GitHub repo" — see item 2.
+
+### 1. Manifest completeness
+
+- **Required top-level (verbatim):** *"Top-level `id`, `name`, `version`, and `min_herdr_version`
+  are required."* **Optional documented:** only `description` and `platforms`
+  (`platforms = ["linux","macos","windows"]`).
+- **There is NO documented top-level field for** `homepage`, `repository`, `license`, `author`/
+  `authors`, `categories`, `keywords`, or `icon`. (Doc gap — do not add speculative fields; herdr
+  may reject unknown keys, and they aren't read by anything documented. Put homepage/license/author
+  in standard GitHub repo files, not the manifest.)
+- **`id` format (verbatim):** *"Plugin ids may use ASCII letters, digits, dot, colon, underscore,
+  and hyphen."* Action/pane/link-handler ids **cannot use dots**. No convention ties the plugin id
+  to the repo name (so `gh-pr` or a namespaced `wyattjoh:gh-pr` are both fine).
+- **At least one entrypoint is required:** *"The manifest must declare at least one action, pane, or
+  event."* Our `[[events]]` + `[[actions]]` set satisfies this.
+- **`[[build]]` for a Bun/TS plugin:** build runs *"during GitHub `plugin install` after
+  confirmation and before Herdr registers the plugin"* and *"`plugin link` does not run build
+  commands; local authors build their working tree themselves."* So:
+  - If the Bun script runs directly (`#!/usr/bin/env bun` on a `.ts` file, no compile step, deps
+    vendored or none), **no `[[build]]` is needed** — leanest. Bun runs TS directly.
+  - If the plugin has npm/bun dependencies that must be installed on the target machine, add a
+    `[[build]]` with `command = ["bun","install","--production"]` (and `platforms` if needed), since
+    GitHub-install users won't have your `node_modules`. For a zero-dependency single-file Bun
+    script, skip it. **Recommendation: keep it dependency-free so no build step is required and
+    behavior is identical between `link` (dev) and `install` (published).**
+
+### 2. Marketplace / publishing — PUBLIC repo required
+
+- **Discovery signal (verbatim):** add the GitHub topic **`herdr-plugin`**. The index *"uses this
+  signal for discovery when the marketplace launches."*
+- **Index reads manifest fields:** listings show `id`, `name`, `description`, declared `platforms`,
+  and the repository link. So a clear `description` and accurate `platforms` are worth setting even
+  though only `description` is technically optional-but-recommended.
+- **Visibility (the conflict):** the marketplace expects a *"public GitHub repository."* **A private
+  repo cannot be listed/discovered.** Direct GitHub install (`herdr plugin install owner/repo`)
+  *"clones with git"* — so a **private repo will install only if the user's local git has
+  credentials** (SSH key or token) for it; herdr does not document its own auth path (doc gap).
+  Net: a private `wyattjoh/herdr-plugin-gh-pr` is fine for personal/`plugin install` use with your
+  own git creds and for `plugin link` dev, but it will NOT appear in the marketplace and won't
+  install for anyone lacking repo access. If marketplace discovery is ever wanted, the repo must be
+  public + topic-tagged. **Flag this to confirm private is intentional.**
+- **No validation/review:** marketplace listing *"does not mean Herdr has reviewed it"* — no formal
+  review or submission process documented.
+- **No naming convention / required tag / release** is documented for the index (gap). Install can
+  pin a revision via `--ref` (see item 4), so cutting a git tag is good hygiene even if not required.
+
+### 3. Install from GitHub
+
+- **Mechanics (verbatim):** *"plugin install accepts GitHub shorthand only, such as
+  owner/repo/subdir. It clones with git, shows a preview in interactive terminals, runs supported
+  build commands."* Reinstall replaces the checkout; installing over a linked plugin is rejected.
+- **Required at root/subdir:** *"A directory that contains herdr-plugin.toml and one executable
+  script or program"* — nothing else mandated.
+- **Bun runtime assumption:** herdr runs the `command` argv array **directly, not through a shell**
+  (*"Herdr does not run them through a shell"*). So `command = ["bun","scripts/whatever.ts", ...]`
+  with **bun on PATH** is the safe form. A bare `["./script.ts"]` relying on a `#!/usr/bin/env bun`
+  shebang requires the executable bit AND bun on PATH; the docs are **silent on executable-bit
+  requirements** (gap), so **prefer invoking the interpreter explicitly** (`["bun", "..."]`) rather
+  than depending on shebang+chmod. On Windows herdr resolves `PATHEXT` shims like `bun.cmd`.
+- **External binary deps (bun, gh, git): NO declaration mechanism exists** (gap). The plugin cannot
+  declare "requires gh/git/bun." Mitigations: document the prerequisites in the README, and have the
+  script fail fast with a clear message if `gh`/`git`/`bun` is missing (e.g. check exit codes and
+  print a one-line "install gh" hint to the labelled status or stderr).
+
+### 4. Versioning / compat
+
+- **`min_herdr_version`:** declare the minimum herdr that has the APIs you use. We rely on
+  local-plugin-v1 + `pane.report_metadata` (custom_status, ttl_ms, clear_custom_status) +
+  `events.subscribe` — all v0.7.0 (protocol 14). **Set `min_herdr_version = "0.7.0"`.**
+- **`version`:** semver for the plugin itself.
+- **`platforms`:** values are `"linux"`, `"macos"`, `"windows"`. If the script assumes a POSIX
+  shell-less env and `gh`/`git`, declaring `["macos","linux"]` is honest unless Windows is tested.
+- **`--ref`:** *"pin --ref when you want a specific revision"* — accepts a revision (tag/branch/
+  commit; exact accepted forms are a doc gap). Tagging releases (`v0.1.0`) lets users pin. No need
+  to pin protocol 14 anywhere beyond `min_herdr_version`.
+
+### 5. Anything else for a clean published plugin
+
+- **LICENSE:** not required by herdr (gap), but standard for a published repo — add one if it goes
+  public.
+- **`.herdrignore` / config schema / icon:** **none documented** (gap) — do not invent them.
+- **Action `contexts` correctness:** docs only show `contexts = ["workspace"]` and do **not
+  enumerate** other values (`pane`/`agent`/`tab` are unconfirmed — gap). Since our refresh/open-pr
+  actions operate on the focused pane, verify empirically which context strings herdr accepts; if
+  only `workspace` is valid, read the focused pane from `HERDR_PLUGIN_CONTEXT_JSON` / `pane.current`
+  inside the action rather than relying on a `pane`/`agent` context. **Do not ship an unverified
+  context value** — an invalid `contexts` entry may silently drop the action.
+- **`HERDR_PLUGIN_CONTEXT_JSON` exact schema is undocumented** (gap) — log it once and inspect rather
+  than assuming fields.
+- **README:** document prerequisites (bun, gh authenticated, git), install command
+  (`herdr plugin install wyattjoh/herdr-plugin-gh-pr`), and the public/private caveat.
+- **Dev/publish parity:** because `plugin link` skips `[[build]]`, anything that only works after a
+  build will pass in dev and break on GitHub install. Staying dependency-free (no `[[build]]`)
+  removes this whole failure class.
+
+**Net pre-publish checklist:** confirm private-vs-public intent (marketplace needs public);
+`min_herdr_version = "0.7.0"`; set `description` + accurate `platforms`; invoke `bun` explicitly in
+command arrays (don't rely on shebang+chmod); skip `[[build]]` if dependency-free, else
+`bun install`; verify the `[[actions]]` `contexts` value against a live herdr; add a README with
+prerequisites; add a LICENSE if going public; tag a release for `--ref` pinning.
+
 ## Sources
 - https://herdr.dev/docs/ (TOC)
 - https://herdr.dev/docs/plugins/ (manifest, panes, placement, "terminal processes only", "entire CLI is the plugin API")
 - https://herdr.dev/docs/socket-api/ (pane.current/get/list/process_info, events.subscribe, report_metadata/report_agent, notification.show, plugin.pane.*)
 - https://herdr.dev/docs/configuration/ (no status bar; ui.toast.delivery + position)
 - https://herdr.dev/docs/agents/ (custom_status is display-only label)
-- https://herdr.dev/docs/marketplace/ (no example plugins; herdr-plugin topic)
+- https://herdr.dev/docs/marketplace/ (herdr-plugin topic; public-repo requirement; index not live; no review)
+- https://herdr.dev/docs/plugins/ (required vs optional manifest fields; [[build]] install-only; clones with git; --ref; argv-not-shell; id format)
 - GitHub `ogulcancelik/herdr` releases — v0.7.0 confirmed Latest (2026-06-15)
