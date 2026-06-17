@@ -1,11 +1,5 @@
 import { $ } from "bun";
-import {
-  composeLabel,
-  rollupChecks,
-  type Check,
-  type PrInfo,
-  type PrState,
-} from "./label";
+import { composeLabel, rollupChecks, type Check } from "./label";
 
 const SOURCE = "gh-pr";
 
@@ -19,9 +13,13 @@ interface PaneCurrent {
   };
 }
 
-// Resolve the focused pane id and its working directory from herdr.
-async function focusedPane(): Promise<{ paneId: string; cwd: string } | null> {
-  const out = await $`herdr pane current`.nothrow().quiet();
+// Resolve a pane id and its working directory from herdr. With no argument it
+// uses the focused pane (the manifest's per-event behavior); pass a pane id to
+// target a specific pane (used by the seed loop and a targeted refresh).
+async function resolvePane(targetPaneId?: string): Promise<{ paneId: string; cwd: string } | null> {
+  const out = targetPaneId
+    ? await $`herdr pane get ${targetPaneId}`.nothrow().quiet()
+    : await $`herdr pane current`.nothrow().quiet();
   if (out.exitCode !== 0) return null;
   let parsed: PaneCurrent;
   try {
@@ -47,17 +45,13 @@ async function currentBranch(cwd: string): Promise<string | null> {
   return name;
 }
 
-// PR identity for the branch, or null when the branch has no PR.
-async function prInfo(cwd: string, branch: string): Promise<PrInfo | null> {
-  const out = await $`gh pr view ${branch} --json number,state,isDraft`.cwd(cwd).nothrow().quiet();
+// PR number for the branch, or null when the branch has no PR.
+async function prNumber(cwd: string, branch: string): Promise<number | null> {
+  const out = await $`gh pr view ${branch} --json number`.cwd(cwd).nothrow().quiet();
   if (out.exitCode !== 0) return null;
   try {
-    const data = JSON.parse(out.stdout.toString()) as {
-      number: number;
-      state: PrState;
-      isDraft: boolean;
-    };
-    return { number: data.number, state: data.state, isDraft: data.isDraft };
+    const data = JSON.parse(out.stdout.toString()) as { number: number };
+    return typeof data.number === "number" ? data.number : null;
   } catch {
     return null;
   }
@@ -83,8 +77,8 @@ async function clearLabel(paneId: string): Promise<void> {
   await $`herdr pane report-metadata ${paneId} --source ${SOURCE} --clear-custom-status`.nothrow().quiet();
 }
 
-export async function run(): Promise<void> {
-  const pane = await focusedPane();
+export async function run(targetPaneId?: string): Promise<void> {
+  const pane = await resolvePane(targetPaneId);
   if (!pane) return;
 
   const branch = await currentBranch(pane.cwd);
@@ -94,14 +88,14 @@ export async function run(): Promise<void> {
     return;
   }
 
-  const pr = await prInfo(pane.cwd, branch);
-  if (!pr) {
+  const number = await prNumber(pane.cwd, branch);
+  if (number === null) {
     // Branch has no PR, show nothing rather than a stale label.
     await clearLabel(pane.paneId);
     return;
   }
 
   const checks = await prChecks(pane.cwd, branch);
-  const label = composeLabel(pr, rollupChecks(checks));
+  const label = composeLabel(number, rollupChecks(checks));
   await setLabel(pane.paneId, label);
 }

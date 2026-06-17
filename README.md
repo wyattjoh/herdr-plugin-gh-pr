@@ -1,6 +1,6 @@
 # herdr-plugin-gh-pr
 
-Shows the GitHub PR status of the focused **agent** pane's current git branch as a label on that pane's row in the herdr sidebar. The label reads like `PR #123 open ✓` (✓ CI passing, ✗ failing, ● pending, no symbol when there are no checks; merged/closed PRs show no CI symbol).
+Shows the GitHub PR status of the focused **agent** pane's current git branch as a label on that pane's row in the herdr sidebar. The label reads like `#123 ✓` (the PR number plus a CI rollup symbol: ✓ passing, ✗ failing, ● pending, and no symbol when there are no checks).
 
 ## Why a sidebar label and not a top-right overlay
 

@@ -1,11 +1,3 @@
-export type PrState = "OPEN" | "CLOSED" | "MERGED";
-
-export interface PrInfo {
-  number: number;
-  state: PrState;
-  isDraft: boolean;
-}
-
 export type CheckBucket = "pass" | "fail" | "pending" | "skipping" | "cancel";
 
 export interface Check {
@@ -31,17 +23,9 @@ const CI_SYMBOL: Record<CiRollup, string> = {
   none: "",
 };
 
-// "PR #123 open ✓". CI symbol is omitted when there are no checks, and for
-// merged/closed PRs where CI status is no longer meaningful.
-export function composeLabel(pr: PrInfo, ci: CiRollup): string {
-  let stateWord: string;
-  if (pr.state === "MERGED") stateWord = "merged";
-  else if (pr.state === "CLOSED") stateWord = "closed";
-  else if (pr.isDraft) stateWord = "draft";
-  else stateWord = "open";
-
-  const base = `PR #${pr.number} ${stateWord}`;
-  const terminal = pr.state === "MERGED" || pr.state === "CLOSED";
-  const symbol = terminal ? "" : CI_SYMBOL[ci];
-  return symbol ? `${base} ${symbol}` : base;
+// "#123 ✓". Just the PR number and a CI rollup symbol, kept short for the
+// sidebar. The CI symbol is omitted when there are no checks.
+export function composeLabel(prNumber: number, ci: CiRollup): string {
+  const symbol = CI_SYMBOL[ci];
+  return symbol ? `#${prNumber} ${symbol}` : `#${prNumber}`;
 }
