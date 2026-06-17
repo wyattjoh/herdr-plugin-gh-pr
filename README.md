@@ -24,16 +24,26 @@ That is the entire install. No daemon, no config.
 Focus an agent pane sitting in a git repo whose branch has a PR. The label appears and refreshes when you switch panes or open/create worktrees. To refresh CI status while staying on one pane (herdr has no background poll), run:
 
 ```bash
-herdr plugin action invoke gh-pr/refresh
+herdr plugin action invoke gh-pr.refresh
 ```
 
 To open the focused pane's branch PR in the browser:
 
 ```bash
-herdr plugin action invoke gh-pr/open-pr
+herdr plugin action invoke gh-pr.open-pr
 ```
 
-herdr has no plugin-extensible right-click menu, so bind these actions to keys in your herdr key config (`type = "plugin_action"`) if you want a one-keystroke trigger.
+The qualified action id uses a dot (`gh-pr.open-pr`), not a slash. herdr has no plugin-extensible right-click menu, so to trigger an action with a keystroke, bind it in `~/.config/herdr/config.toml` and run `herdr server reload-config`:
+
+```toml
+[[keys.command]]
+key = "prefix+alt+p"
+type = "plugin_action"
+command = "gh-pr.open-pr"
+description = "open PR in browser"
+```
+
+Then press your prefix (default `ctrl+b`) followed by `alt+p`. Pick a key that does not collide with a built-in (single letters like `o` and `g` are taken; the reload reports conflicts).
 
 ## Develop
 

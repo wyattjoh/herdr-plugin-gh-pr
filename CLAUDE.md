@@ -22,7 +22,7 @@ See `docs/research/herdr-plugin-overlay.md` for the full capability research and
 
 - Install locally: `herdr plugin link .`
 - Run tests: `bun test`
-- Force a label update on the focused pane: `herdr plugin action invoke gh-pr/refresh` (or run `bin/update-pr-status.ts` directly inside a repo pane).
+- Force a label update on the focused pane: `herdr plugin action invoke gh-pr.refresh` (or run `bin/update-pr-status.ts` directly inside a repo pane). Note the qualified id uses a dot (`gh-pr.refresh`), not a slash.
 - Inspect logs: `herdr plugin log list gh-pr`
 
 ## Conventions
