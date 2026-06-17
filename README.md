@@ -27,6 +27,14 @@ Focus an agent pane sitting in a git repo whose branch has a PR. The label appea
 herdr plugin action invoke gh-pr/refresh
 ```
 
+To open the focused pane's branch PR in the browser:
+
+```bash
+herdr plugin action invoke gh-pr/open-pr
+```
+
+herdr has no plugin-extensible right-click menu, so bind these actions to keys in your herdr key config (`type = "plugin_action"`) if you want a one-keystroke trigger.
+
 ## Develop
 
 - `bun test` runs the unit tests.

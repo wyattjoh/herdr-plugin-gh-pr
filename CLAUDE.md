@@ -4,7 +4,9 @@ A herdr plugin (v0.7.0+) that labels the focused **agent** pane's sidebar row wi
 
 ## How it works
 
-herdr exposes no overlay, status bar, or corner UI, and no background daemon. The only persistent ambient surface is the per-pane sidebar `custom_status` label (`pane.report_metadata`), which renders only for panes with a detected agent. So this plugin is event-driven: herdr invokes `bin/update-pr-status.ts` on `pane.focused`, `worktree.opened`, and `worktree.created`. The script resolves the focused pane's cwd, derives the branch, queries `gh`, and writes the label. A `refresh` action refreshes on demand.
+herdr exposes no overlay, status bar, or corner UI, and no background daemon. The only persistent ambient surface is the per-pane sidebar `custom_status` label (`pane.report_metadata`), which renders only for panes with a detected agent. Workspaces and tabs have no equivalent status-label mechanism (custom_status is pane-only), so the label lives on the agent pane. So this plugin is event-driven: herdr invokes `bin/update-pr-status.ts` on `pane.focused`, `worktree.opened`, and `worktree.created`. The script resolves the focused pane's cwd, derives the branch, queries `gh`, and writes the label.
+
+Actions: `refresh` re-runs the labeler on demand; `open-pr` opens the focused pane's branch PR in the browser (`bin/open-pr.ts`). herdr has no plugin-extensible right-click menu, so actions surface via the CLI or a `plugin_action` keybinding, not a context menu.
 
 See `docs/research/herdr-plugin-overlay.md` for the full capability research and citations.
 

@@ -99,3 +99,16 @@ export async function run(targetPaneId?: string): Promise<void> {
   const label = composeLabel(number, rollupChecks(checks));
   await setLabel(pane.paneId, label);
 }
+
+// Open the PR for a pane's branch in the browser. With no argument it uses the
+// focused pane; pass a pane id to target a specific pane. Does nothing if the
+// pane is not in a repo or the branch has no PR.
+export async function openPr(targetPaneId?: string): Promise<void> {
+  const pane = await resolvePane(targetPaneId);
+  if (!pane) return;
+
+  const branch = await currentBranch(pane.cwd);
+  if (!branch) return;
+
+  await $`gh pr view ${branch} --web`.cwd(pane.cwd).nothrow().quiet();
+}

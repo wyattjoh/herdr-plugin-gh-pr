@@ -26,3 +26,12 @@ id = "refresh"
 title = "Refresh PR status"
 contexts = ["pane"]
 command = ["bin/update-pr-status.ts"]
+
+# Open the focused pane's branch PR in the browser. herdr has no
+# plugin-extensible right-click menu, so bind this to a key or invoke it via
+# `herdr plugin action invoke gh-pr/open-pr`.
+[[actions]]
+id = "open-pr"
+title = "Open PR in browser"
+contexts = ["pane"]
+command = ["bin/open-pr.ts"]
