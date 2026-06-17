@@ -1,0 +1,28 @@
+id = "gh-pr"
+name = "GitHub PR Status"
+version = "0.1.0"
+min_herdr_version = "0.7.0"
+description = "Labels the focused agent pane's sidebar row with its branch's GitHub PR status."
+platforms = ["macos", "linux"]
+
+# Refresh when the user switches panes.
+[[events]]
+on = "pane.focused"
+command = ["bin/update-pr-status.ts"]
+
+# Refresh when a worktree (branch) is opened or created.
+[[events]]
+on = "worktree.opened"
+command = ["bin/update-pr-status.ts"]
+
+[[events]]
+on = "worktree.created"
+command = ["bin/update-pr-status.ts"]
+
+# Manual refresh, covers updating CI status while idle on one pane
+# (herdr has no background-poll mechanism).
+[[actions]]
+id = "refresh"
+title = "Refresh PR status"
+contexts = ["pane"]
+command = ["bin/update-pr-status.ts"]
