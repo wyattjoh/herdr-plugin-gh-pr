@@ -1,5 +1,5 @@
 import { $ } from "bun";
-import { composeLabel, rollupChecks, type Check } from "./label";
+import { composeLabel, parsePrNumber, refreshingLabel, rollupChecks, type Check } from "./label";
 
 const SOURCE = "gh-pr";
 
@@ -9,14 +9,22 @@ interface PaneCurrent {
       pane_id?: string;
       cwd?: string;
       foreground_cwd?: string;
+      custom_status?: string;
     };
   };
 }
 
-// Resolve a pane id and its working directory from herdr. With no argument it
-// uses the focused pane (the manifest's per-event behavior); pass a pane id to
-// target a specific pane (used by the seed loop and a targeted refresh).
-async function resolvePane(targetPaneId?: string): Promise<{ paneId: string; cwd: string } | null> {
+interface Pane {
+  paneId: string;
+  cwd: string;
+  currentStatus?: string;
+}
+
+// Resolve a pane id, working directory, and current label from herdr. With no
+// argument it uses the focused pane (the manifest's per-event behavior); pass a
+// pane id to target a specific pane (used by the seed loop and a targeted
+// refresh).
+async function resolvePane(targetPaneId?: string): Promise<Pane | null> {
   const out = targetPaneId
     ? await $`herdr pane get ${targetPaneId}`.nothrow().quiet()
     : await $`herdr pane current`.nothrow().quiet();
@@ -31,7 +39,7 @@ async function resolvePane(targetPaneId?: string): Promise<{ paneId: string; cwd
   const paneId = pane?.pane_id;
   const cwd = pane?.foreground_cwd ?? pane?.cwd;
   if (!paneId || !cwd) return null;
-  return { paneId, cwd };
+  return { paneId, cwd, currentStatus: pane?.custom_status };
 }
 
 // Current branch name, or null if the dir is not a git work tree or is detached.
@@ -86,6 +94,13 @@ export async function run(targetPaneId?: string): Promise<void> {
     // Left a repo (or detached HEAD), drop any stale label on this pane.
     await clearLabel(pane.paneId);
     return;
+  }
+
+  // If the pane already shows a PR number, swap its icon for the refreshing
+  // glyph while the (slower) gh queries run, so the update is visible.
+  const previous = parsePrNumber(pane.currentStatus);
+  if (previous !== null) {
+    await setLabel(pane.paneId, refreshingLabel(previous));
   }
 
   const number = await prNumber(pane.cwd, branch);

@@ -23,6 +23,22 @@ const CI_SYMBOL: Record<CiRollup, string> = {
   none: "",
 };
 
+// Glyph shown in place of the CI symbol while the status is being recomputed.
+export const REFRESHING = "⟳";
+
+// Extract the PR number from an existing label like "#123 ✓" or "#123 ⟳".
+// Used to keep the number on screen while a refresh is in flight.
+export function parsePrNumber(label: string | null | undefined): number | null {
+  const match = label?.match(/^#(\d+)\b/);
+  return match ? Number(match[1]) : null;
+}
+
+// Label shown during a refresh: keep the number, swap the CI symbol for the
+// refreshing glyph.
+export function refreshingLabel(prNumber: number): string {
+  return `#${prNumber} ${REFRESHING}`;
+}
+
 // "#123 ✓". Just the PR number and a CI rollup symbol, kept short for the
 // sidebar. The CI symbol is omitted when there are no checks.
 export function composeLabel(prNumber: number, ci: CiRollup): string {

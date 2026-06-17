@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { composeLabel, rollupChecks } from "../src/label";
+import { composeLabel, parsePrNumber, refreshingLabel, rollupChecks } from "../src/label";
 
 test("rollupChecks returns none for an empty list", () => {
   expect(rollupChecks([])).toBe("none");
@@ -32,4 +32,21 @@ test("composeLabel shows a pending CI dot", () => {
 
 test("composeLabel omits the CI symbol when there are no checks", () => {
   expect(composeLabel(7, "none")).toBe("#7");
+});
+
+test("parsePrNumber extracts the number from an existing label", () => {
+  expect(parsePrNumber("#123 ✓")).toBe(123);
+  expect(parsePrNumber("#7 ⟳")).toBe(7);
+  expect(parsePrNumber("#9")).toBe(9);
+});
+
+test("parsePrNumber returns null when there is no PR number", () => {
+  expect(parsePrNumber(undefined)).toBeNull();
+  expect(parsePrNumber(null)).toBeNull();
+  expect(parsePrNumber("")).toBeNull();
+  expect(parsePrNumber("cli")).toBeNull();
+});
+
+test("refreshingLabel keeps the number and shows the refreshing glyph", () => {
+  expect(refreshingLabel(123)).toBe("#123 ⟳");
 });
