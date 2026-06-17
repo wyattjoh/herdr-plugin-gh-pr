@@ -49,9 +49,15 @@ key = "prefix+u"
 type = "plugin_action"
 command = "gh-pr.open-pr"
 description = "open PR in browser"
+
+[[keys.command]]
+key = "prefix+i"
+type = "plugin_action"
+command = "gh-pr.refresh"
+description = "refresh PR status"
 ```
 
-Then press your prefix (default `ctrl+b`) followed by `u`. Avoid `alt+` chords (they emit characters in the terminal), and pick a key that does not collide with a built-in: `o` (notifications), `g` (goto), `r` (resize), and `v` (split) are taken, while `u` is free. `herdr server reload-config` reports any conflict as a `partial` status.
+Then press your prefix (default `ctrl+b`) followed by `u` (open PR) or `i` (refresh status). Avoid `alt+` chords (they emit characters in the terminal), and pick a key that does not collide with a built-in: `o` (notifications), `g` (goto), `r` (resize), `v` (split), and `e` (edit scrollback) are taken, while `u` and `i` are free. `herdr server reload-config` reports any conflict as a `partial` status.
 
 ## Develop
 
