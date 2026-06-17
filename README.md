@@ -37,13 +37,13 @@ The qualified action id uses a dot (`gh-pr.open-pr`), not a slash. herdr has no 
 
 ```toml
 [[keys.command]]
-key = "prefix+alt+p"
+key = "prefix+u"
 type = "plugin_action"
 command = "gh-pr.open-pr"
 description = "open PR in browser"
 ```
 
-Then press your prefix (default `ctrl+b`) followed by `alt+p`. Pick a key that does not collide with a built-in (single letters like `o` and `g` are taken; the reload reports conflicts).
+Then press your prefix (default `ctrl+b`) followed by `u`. Avoid `alt+` chords (they emit characters in the terminal), and pick a key that does not collide with a built-in: `o` (notifications), `g` (goto), `r` (resize), and `v` (split) are taken, while `u` is free. `herdr server reload-config` reports any conflict as a `partial` status.
 
 ## Develop
 
