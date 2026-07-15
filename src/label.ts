@@ -36,6 +36,17 @@ const TERMINAL_PR_SYMBOL: Record<Exclude<PullRequestState, "OPEN">, string> = {
 // Glyph shown in place of the CI symbol while the status is being recomputed.
 export const REFRESHING = "⟳";
 
+// Pick the working directory to use for a pane. Prefer cwd (the shell's
+// working directory, e.g. the project root the user launched from) over
+// foreground_cwd (the running foreground process's directory, which for an
+// agent like Claude Code can be a transient sandbox path such as /tmp).
+export function resolvePaneCwd(pane: {
+  cwd?: string;
+  foreground_cwd?: string;
+}): string | undefined {
+  return pane.cwd ?? pane.foreground_cwd;
+}
+
 // Extract the PR number from an existing label like "#123 ✓" or "#123 ⟳".
 // Used to keep the number on screen while a refresh is in flight.
 export function parsePrNumber(label: string | null | undefined): number | null {
