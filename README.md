@@ -4,7 +4,7 @@ Shows the GitHub PR status of the focused **agent** pane's current git branch as
 
 ## Requirements
 
-- herdr >= 0.7.0
+- herdr >= 0.7.4
 - `bun`, `git`, and `gh` (authenticated: `gh auth status`) on your PATH
 
 ## Install
@@ -42,6 +42,20 @@ description = "refresh PR status"
 ```
 
 Then press your prefix (default `ctrl+b`) followed by `u` (open PR) or `i` (refresh status). Avoid `alt+` chords (they emit characters in the terminal), and pick a key that does not collide with a built-in: `o` (notifications), `g` (goto), `r` (resize), `v` (split), and `e` (edit scrollback) are taken by default. `herdr server reload-config` reports any conflict as a `partial` status.
+
+## Sidebar setup
+
+The plugin writes its label to a named `pr` token (`pane.report_metadata --token pr=VALUE`). herdr's
+packed sidebar row layout only shows tokens you place in your row config, so add `$pr` to the agent
+row in `~/.config/herdr/config.toml`:
+
+```toml
+[ui.sidebar.agents]
+rows = [["state_icon", "workspace", "$pr"], ["agent"]]
+```
+
+Then `herdr server reload-config`. Without `$pr` in a row, the token is still written but nothing
+renders it.
 
 ## Use
 

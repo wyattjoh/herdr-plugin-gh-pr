@@ -478,6 +478,38 @@ command arrays (don't rely on shebang+chmod); skip `[[build]]` if dependency-fre
 `bun install`; verify the `[[actions]]` `contexts` value against a live herdr; add a README with
 prerequisites; add a LICENSE if going public; tag a release for `--ref` pinning.
 
+## Update: herdr 0.7.4 — named sidebar tokens replace custom_status (protocol 16)
+
+**Target version:** herdr v0.7.4, socket protocol 16.
+
+0.7.4 introduced configurable sidebar row layouts: `[ui.sidebar.agents]` (and similar sections)
+take a `rows` array of arrays of cell names, where a `$name` entry is a plugin-writable **named
+token** rather than a built-in cell like `state_icon`/`workspace`/`agent`. Example:
+
+```toml
+[ui.sidebar.agents]
+rows = [["state_icon", "workspace", "$pr"], ["agent"]]
+```
+
+**Verified token API:**
+- CLI: `herdr pane report-metadata <pane_id> --source <src> --token NAME=VALUE` sets
+  `pane.tokens.NAME` for that pane/source. `--clear-token NAME` removes it (mirrors
+  `--custom-status` / `--clear-custom-status`, same `pane.report_metadata` call).
+- Read-back: `pane.current` / `pane.get` / `pane.list` now include a `tokens` map
+  (`Record<string, string>`) on `PaneInfo`, e.g. `pane.tokens.pr`.
+- **`custom_status` is legacy.** It is still accepted by `pane.report_metadata` for backward
+  compatibility, but the new packed row layout (`rows` config) does not render it — only `$name`
+  tokens placed in a row show up. A plugin that only sets `custom_status` on 0.7.4+ herdr will
+  write a value nothing displays unless the user's config still uses an old unpacked layout.
+- Token values follow the same "persistent until overwritten/cleared" semantics as `custom_status`
+  (same `source` namespacing, same "clear on your own source" model) — nothing about that model
+  changed, only the field name and the fact it must be placed in `rows` to render.
+
+**Migration implication for this plugin:** switch from `--custom-status`/`--clear-custom-status`
+to `--token pr=VALUE`/`--clear-token pr`, bump `min_herdr_version` to `"0.7.4"`, and document the
+`$pr` row-config requirement in the README (users on a default/old config will otherwise see no
+label even though the plugin is working correctly).
+
 ## Sources
 - https://herdr.dev/docs/ (TOC)
 - https://herdr.dev/docs/plugins/ (manifest, panes, placement, "terminal processes only", "entire CLI is the plugin API")
