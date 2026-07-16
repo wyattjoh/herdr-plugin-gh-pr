@@ -1,5 +1,11 @@
 import { expect, test } from "bun:test";
-import { composeLabel, parsePrNumber, refreshingLabel, rollupChecks } from "../src/label";
+import {
+  composeLabel,
+  parsePrNumber,
+  refreshingLabel,
+  resolvePaneCwd,
+  rollupChecks,
+} from "../src/label";
 
 test("rollupChecks returns none for an empty list", () => {
   expect(rollupChecks([])).toBe("none");
@@ -57,4 +63,24 @@ test("parsePrNumber returns null when there is no PR number", () => {
 
 test("refreshingLabel keeps the number and shows the refreshing glyph", () => {
   expect(refreshingLabel(123)).toBe("#123 ⟳");
+});
+
+test("resolvePaneCwd prefers cwd over foreground_cwd on agent panes", () => {
+  // Regression test: an agent's foreground process (e.g. Claude Code) can run
+  // from a transient sandbox dir like /tmp, which is not the project repo.
+  // Picking foreground_cwd there made currentBranch() fail and clearLabel()
+  // wipe a correct, already-set PR label every time the pane was focused.
+  expect(
+    resolvePaneCwd({ cwd: "/home/user/project", foreground_cwd: "/tmp" }),
+  ).toBe("/home/user/project");
+});
+
+test("resolvePaneCwd falls back to foreground_cwd when cwd is absent", () => {
+  expect(resolvePaneCwd({ foreground_cwd: "/home/user/project" })).toBe(
+    "/home/user/project",
+  );
+});
+
+test("resolvePaneCwd returns undefined when neither is present", () => {
+  expect(resolvePaneCwd({})).toBeUndefined();
 });

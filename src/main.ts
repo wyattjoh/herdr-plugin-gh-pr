@@ -3,6 +3,7 @@ import {
   composeLabel,
   parsePrNumber,
   refreshingLabel,
+  resolvePaneCwd,
   rollupChecks,
   type Check,
   type PullRequestState,
@@ -50,7 +51,7 @@ async function resolvePane(targetPaneId?: string): Promise<Pane | null> {
   }
   const pane = parsed.result?.pane;
   const paneId = pane?.pane_id;
-  const cwd = pane?.foreground_cwd ?? pane?.cwd;
+  const cwd = pane ? resolvePaneCwd(pane) : undefined;
   if (!paneId || !cwd) return null;
   return { paneId, cwd, currentStatus: pane?.custom_status };
 }
