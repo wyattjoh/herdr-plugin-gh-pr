@@ -32,6 +32,7 @@ interface Pane {
 interface PullRequest {
   number: number;
   state: PullRequestState;
+  url: string;
 }
 
 // Resolve a pane id, working directory, and current label from herdr. With no
@@ -69,13 +70,17 @@ async function currentBranch(cwd: string): Promise<string | null> {
 
 // PR identity for the branch, or null when the branch has no PR.
 async function prInfo(cwd: string, branch: string): Promise<PullRequest | null> {
-  const out = await $`gh pr view ${branch} --json number,state`.cwd(cwd).nothrow().quiet();
+  const out = await $`gh pr view ${branch} --json number,state,url`.cwd(cwd).nothrow().quiet();
   if (out.exitCode !== 0) return null;
   try {
-    const data = JSON.parse(out.stdout.toString()) as { number: number; state?: string };
-    if (typeof data.number !== "number") return null;
+    const data = JSON.parse(out.stdout.toString()) as {
+      number: number;
+      state?: string;
+      url?: string;
+    };
+    if (typeof data.number !== "number" || typeof data.url !== "string") return null;
     const state = data.state === "CLOSED" || data.state === "MERGED" ? data.state : "OPEN";
-    return { number: data.number, state };
+    return { number: data.number, state, url: data.url };
   } catch {
     return null;
   }
@@ -152,5 +157,16 @@ export async function openPr(targetPaneId?: string): Promise<void> {
   const branch = await currentBranch(pane.cwd);
   if (!branch) return;
 
-  await $`gh pr view ${branch} --web`.cwd(pane.cwd).nothrow().quiet();
+  const opened = await $`gh pr view ${branch} --web`.cwd(pane.cwd).nothrow().quiet();
+  if (opened.exitCode === 0) return;
+
+  // `gh pr view --web` shells out to xdg-open/open, which has no way to
+  // launch a browser over a plain SSH session (no DISPLAY, no text browser
+  // installed). That failure is otherwise silent from the pane's point of
+  // view, so fall back to surfacing the PR URL directly: a toast (if the
+  // user has ui.toast.delivery configured) and the plugin log.
+  const pr = await prInfo(pane.cwd, branch);
+  if (!pr) return;
+  await $`herdr notification show ${"PR ready"} --body ${pr.url}`.nothrow().quiet();
+  console.error(`[gh-pr] could not open a browser, PR URL: ${pr.url}`);
 }
