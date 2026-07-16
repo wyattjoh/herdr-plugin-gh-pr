@@ -18,7 +18,7 @@ interface PaneCurrent {
       pane_id?: string;
       cwd?: string;
       foreground_cwd?: string;
-      custom_status?: string;
+      tokens?: Record<string, string>;
     };
   };
 }
@@ -54,7 +54,7 @@ async function resolvePane(targetPaneId?: string): Promise<Pane | null> {
   const paneId = pane?.pane_id;
   const cwd = pane ? resolvePaneCwd(pane) : undefined;
   if (!paneId || !cwd) return null;
-  return { paneId, cwd, currentStatus: pane?.custom_status };
+  return { paneId, cwd, currentStatus: pane?.tokens?.pr };
 }
 
 // Current branch name, or null if the dir is not a git work tree or is detached.
@@ -99,11 +99,11 @@ async function prChecks(cwd: string, branch: string): Promise<Check[]> {
 }
 
 async function setLabel(paneId: string, text: string): Promise<void> {
-  await $`herdr pane report-metadata ${paneId} --source ${SOURCE} --custom-status ${text}`.nothrow().quiet();
+  await $`herdr pane report-metadata ${paneId} --source ${SOURCE} --token pr=${text}`.nothrow().quiet();
 }
 
 async function clearLabel(paneId: string): Promise<void> {
-  await $`herdr pane report-metadata ${paneId} --source ${SOURCE} --clear-custom-status`.nothrow().quiet();
+  await $`herdr pane report-metadata ${paneId} --source ${SOURCE} --clear-token pr`.nothrow().quiet();
 }
 
 export async function run(targetPaneId?: string, force = false): Promise<void> {
