@@ -61,6 +61,10 @@ renders it.
 
 Focus an agent pane sitting in a git repo whose branch has a PR. The label appears and refreshes when you switch panes or open/create worktrees. To avoid hammering the GitHub API, the automatic path checks at most once per pane every 30 seconds; a manual refresh always updates immediately.
 
+### Submodules
+
+If the pane's own repo has no PR on its current branch, the plugin also checks each initialized git submodule (via `git submodule status --recursive`) and labels the first one whose branch has a PR. This covers monorepo/superproject setups where the working branch and its PR live inside a submodule while the outer worktree sits on a plain branch. The pane's own repo always wins when both have a PR, and repos without submodules are unaffected.
+
 Refresh the focused pane's PR status on demand:
 
 ```bash
