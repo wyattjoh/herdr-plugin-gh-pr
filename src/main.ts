@@ -1,8 +1,10 @@
 import { $ } from "bun";
+import { loadConfig } from "./config";
 import {
   composeLabel,
   parsePrNumber,
   refreshingLabel,
+  repoFromPrUrl,
   resolvePaneCwd,
   rollupChecks,
   type Check,
@@ -117,16 +119,35 @@ async function candidateDirs(cwd: string): Promise<string[]> {
 }
 
 // First candidate work tree whose current branch has a PR, or null if none do.
+// isSubmodule is true when the match came from a submodule rather than the
+// pane's own repo (the first candidate).
 async function locatePr(
   cwd: string,
-): Promise<{ dir: string; branch: string; pr: PullRequest } | null> {
-  for (const dir of await candidateDirs(cwd)) {
+): Promise<{ dir: string; branch: string; pr: PullRequest; isSubmodule: boolean } | null> {
+  const dirs = await candidateDirs(cwd);
+  for (let i = 0; i < dirs.length; i++) {
+    const dir = dirs[i];
     const branch = await currentBranch(dir);
     if (!branch) continue;
     const pr = await prInfo(dir, branch);
-    if (pr) return { dir, branch, pr };
+    if (pr) return { dir, branch, pr, isSubmodule: i > 0 };
   }
   return null;
+}
+
+// The repo-name prefix to show on the label for this PR, or undefined when the
+// config says not to. Derived from the PR url, so it costs no extra gh call.
+function repoLabelFor(
+  pr: PullRequest,
+  isSubmodule: boolean,
+  config: Awaited<ReturnType<typeof loadConfig>>,
+): string | undefined {
+  const { mode, format } = config.repoName;
+  const show = mode === "always" || (mode === "submodule" && isSubmodule);
+  if (!show) return undefined;
+  const repo = repoFromPrUrl(pr.url);
+  if (!repo) return undefined;
+  return format === "full" ? `${repo.owner}/${repo.name}` : repo.name;
 }
 
 async function setLabel(paneId: string, text: string): Promise<void> {
@@ -161,15 +182,16 @@ export async function run(targetPaneId?: string, force = false): Promise<void> {
     await clearLabel(pane.paneId);
     return;
   }
-  const { dir, branch, pr } = located;
+  const { dir, branch, pr, isSubmodule } = located;
+  const repoLabel = repoLabelFor(pr, isSubmodule, await loadConfig());
 
   if (pr.state !== "OPEN") {
-    await setLabel(pane.paneId, composeLabel(pr.number, "none", pr.state));
+    await setLabel(pane.paneId, composeLabel(pr.number, "none", pr.state, repoLabel));
     return;
   }
 
   const checks = await prChecks(dir, branch);
-  const label = composeLabel(pr.number, rollupChecks(checks));
+  const label = composeLabel(pr.number, rollupChecks(checks), "OPEN", repoLabel);
   await setLabel(pane.paneId, label);
 }
 

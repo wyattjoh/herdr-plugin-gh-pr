@@ -65,6 +65,29 @@ Focus an agent pane sitting in a git repo whose branch has a PR. The label appea
 
 If the pane's own repo has no PR on its current branch, the plugin also checks each initialized git submodule (via `git submodule status --recursive`) and labels the first one whose branch has a PR. This covers monorepo/superproject setups where the working branch and its PR live inside a submodule while the outer worktree sits on a plain branch. The pane's own repo always wins when both have a PR, and repos without submodules are unaffected.
 
+When the PR comes from a submodule, the label is prefixed with the PR's repo name so you can tell which repo it belongs to (e.g. `workspace #123 ✓`). This is configurable — see below.
+
+## Configuration
+
+Optional. The plugin reads `config.json` from its config dir (`herdr plugin config-dir gh-pr`, i.e. `~/.config/herdr/plugins/config/gh-pr/config.json`). Missing or invalid config falls back to the defaults, so you only set what you want to change.
+
+```json
+{
+  "repoName": {
+    "mode": "submodule",
+    "format": "short"
+  }
+}
+```
+
+- `repoName.mode` — when to prefix the label with the PR's repo name:
+  - `"submodule"` *(default)* — only when the PR was found in a submodule (a different repo than the pane's own), the case where "which repo?" is ambiguous.
+  - `"always"` — always, even for the pane's own repo.
+  - `"never"` — never; the label stays `#123 ✓`.
+- `repoName.format` — `"short"` *(default)* shows the repo name only (`workspace`); `"full"` shows `owner/name` (`mobile-club/workspace`).
+
+Changes take effect on the next refresh (switch panes or `herdr plugin action invoke gh-pr.refresh`).
+
 Refresh the focused pane's PR status on demand:
 
 ```bash

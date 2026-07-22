@@ -3,6 +3,7 @@ import {
   composeLabel,
   parsePrNumber,
   refreshingLabel,
+  repoFromPrUrl,
   resolvePaneCwd,
   rollupChecks,
 } from "../src/label";
@@ -46,6 +47,29 @@ test("composeLabel shows a merged PR icon instead of CI status", () => {
 
 test("composeLabel shows a closed PR icon instead of CI status", () => {
   expect(composeLabel(9, "pending", "CLOSED")).toBe("#9 ⊘");
+});
+
+test("composeLabel prefixes the repo label when given", () => {
+  expect(composeLabel(123, "pass", "OPEN", "workspace")).toBe("workspace #123 ✓");
+  expect(composeLabel(9, "fail", "MERGED", "api")).toBe("api #9 ◆");
+  expect(composeLabel(7, "none", "OPEN", "web")).toBe("web #7");
+});
+
+test("repoFromPrUrl extracts owner and name from a PR url", () => {
+  expect(repoFromPrUrl("https://github.com/mobile-club/workspace/pull/12212")).toEqual({
+    owner: "mobile-club",
+    name: "workspace",
+  });
+});
+
+test("repoFromPrUrl returns null for a non-PR url", () => {
+  expect(repoFromPrUrl("https://github.com/owner/repo")).toBeNull();
+  expect(repoFromPrUrl("not a url")).toBeNull();
+});
+
+test("parsePrNumber also reads a repo-prefixed label", () => {
+  expect(parsePrNumber("workspace #123 ✓")).toBe(123);
+  expect(parsePrNumber("mobile-club/workspace #7 ⟳")).toBe(7);
 });
 
 test("parsePrNumber extracts the number from an existing label", () => {
