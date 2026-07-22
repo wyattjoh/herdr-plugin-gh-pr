@@ -46,16 +46,26 @@ Then press your prefix (default `ctrl+b`) followed by `u` (open PR) or `i` (refr
 ## Sidebar setup
 
 The plugin writes its label to a named `pr` token (`pane.report_metadata --token pr=VALUE`). herdr's
-packed sidebar row layout only shows tokens you place in your row config, so add `$pr` to the agent
-row in `~/.config/herdr/config.toml`:
+packed sidebar row layout only shows tokens you place in your row config, so add `$pr` to a row in
+`~/.config/herdr/config.toml`, then run `herdr server reload-config`. Without `$pr` in a row, the
+token is still written but nothing renders it.
+
+Where you put `$pr` is up to you — the sidebar is narrow, so the label competes for width with
+whatever shares its row. Pick the layout that fits; all three are valid:
 
 ```toml
+# Compact: label shares the workspace row (fine for short "#123 ✓" labels,
+# but a long or repo-prefixed label like "workspace #123 ✓" gets truncated).
 [ui.sidebar.agents]
 rows = [["state_icon", "workspace", "$pr"], ["agent"]]
-```
 
-Then `herdr server reload-config`. Without `$pr` in a row, the token is still written but nothing
-renders it.
+# Label replaces the agent name on its own full-width row (recommended when
+# using the repo-name prefix — see Configuration).
+rows = [["state_icon", "workspace"], ["$pr"]]
+
+# Label on a dedicated third row, keeping the agent name.
+rows = [["state_icon", "workspace"], ["agent"], ["$pr"]]
+```
 
 ## Use
 
