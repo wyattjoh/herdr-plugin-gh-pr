@@ -47,11 +47,20 @@ export function resolvePaneCwd(pane: {
   return pane.cwd ?? pane.foreground_cwd;
 }
 
-// Extract the PR number from an existing label like "#123 ✓" or "#123 ⟳".
-// Used to keep the number on screen while a refresh is in flight.
+// Extract the PR number from an existing label like "#123 ✓", "#123 ⟳", or a
+// repo-prefixed "workspace #123 ✓". Used to keep the number on screen while a
+// refresh is in flight.
 export function parsePrNumber(label: string | null | undefined): number | null {
-  const match = label?.match(/^#(\d+)\b/);
+  const match = label?.match(/#(\d+)\b/);
   return match ? Number(match[1]) : null;
+}
+
+// Extract "owner/name" from a GitHub PR URL, or null if it doesn't match. Used
+// to derive the repo-name prefix without an extra gh call (the PR url is
+// already known).
+export function repoFromPrUrl(url: string): { owner: string; name: string } | null {
+  const match = url.match(/github\.com\/([^/]+)\/([^/]+)\/pull\/\d+/);
+  return match ? { owner: match[1], name: match[2] } : null;
 }
 
 // Label shown during a refresh: keep the number, swap the CI symbol for the
@@ -61,17 +70,22 @@ export function refreshingLabel(prNumber: number): string {
 }
 
 /**
- * Compose the concise PR sidebar label from a PR number, CI rollup, and PR state.
+ * Compose the concise PR sidebar label from a PR number, CI rollup, and PR
+ * state. An optional repo label is prefixed (e.g. "workspace #123 ✓") to show
+ * which repository the PR belongs to.
  */
 export function composeLabel(
   prNumber: number,
   ci: CiRollup,
   prState: PullRequestState = "OPEN",
+  repoLabel?: string,
 ): string {
+  const prefix = repoLabel ? `${repoLabel} ` : "";
+
   if (prState !== "OPEN") {
-    return `#${prNumber} ${TERMINAL_PR_SYMBOL[prState]}`;
+    return `${prefix}#${prNumber} ${TERMINAL_PR_SYMBOL[prState]}`;
   }
 
   const symbol = CI_SYMBOL[ci];
-  return symbol ? `#${prNumber} ${symbol}` : `#${prNumber}`;
+  return symbol ? `${prefix}#${prNumber} ${symbol}` : `${prefix}#${prNumber}`;
 }

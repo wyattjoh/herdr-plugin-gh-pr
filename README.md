@@ -46,20 +46,57 @@ Then press your prefix (default `ctrl+b`) followed by `u` (open PR) or `i` (refr
 ## Sidebar setup
 
 The plugin writes its label to a named `pr` token (`pane.report_metadata --token pr=VALUE`). herdr's
-packed sidebar row layout only shows tokens you place in your row config, so add `$pr` to the agent
-row in `~/.config/herdr/config.toml`:
+packed sidebar row layout only shows tokens you place in your row config, so add `$pr` to a row in
+`~/.config/herdr/config.toml`, then run `herdr server reload-config`. Without `$pr` in a row, the
+token is still written but nothing renders it.
+
+Where you put `$pr` is up to you — the sidebar is narrow, so the label competes for width with
+whatever shares its row. Pick the layout that fits; all three are valid:
 
 ```toml
+# Compact: label shares the workspace row (fine for short "#123 ✓" labels,
+# but a long or repo-prefixed label like "workspace #123 ✓" gets truncated).
 [ui.sidebar.agents]
 rows = [["state_icon", "workspace", "$pr"], ["agent"]]
-```
 
-Then `herdr server reload-config`. Without `$pr` in a row, the token is still written but nothing
-renders it.
+# Label replaces the agent name on its own full-width row (recommended when
+# using the repo-name prefix — see Configuration).
+rows = [["state_icon", "workspace"], ["$pr"]]
+
+# Label on a dedicated third row, keeping the agent name.
+rows = [["state_icon", "workspace"], ["agent"], ["$pr"]]
+```
 
 ## Use
 
 Focus an agent pane sitting in a git repo whose branch has a PR. The label appears and refreshes when you switch panes or open/create worktrees. To avoid hammering the GitHub API, the automatic path checks at most once per pane every 30 seconds; a manual refresh always updates immediately.
+
+### Submodules
+
+If the pane's own repo has no PR on its current branch, the plugin also checks each initialized git submodule (via `git submodule status --recursive`) and labels the first one whose branch has a PR. This covers monorepo/superproject setups where the working branch and its PR live inside a submodule while the outer worktree sits on a plain branch. The pane's own repo always wins when both have a PR, and repos without submodules are unaffected.
+
+When the PR comes from a submodule, the label is prefixed with the PR's repo name so you can tell which repo it belongs to (e.g. `workspace #123 ✓`). This is configurable — see below.
+
+## Configuration
+
+Optional. The plugin reads `config.json` from its config dir (`herdr plugin config-dir gh-pr`, i.e. `~/.config/herdr/plugins/config/gh-pr/config.json`). Missing or invalid config falls back to the defaults, so you only set what you want to change.
+
+```json
+{
+  "repoName": {
+    "mode": "submodule",
+    "format": "short"
+  }
+}
+```
+
+- `repoName.mode` — when to prefix the label with the PR's repo name:
+  - `"submodule"` *(default)* — only when the PR was found in a submodule (a different repo than the pane's own), the case where "which repo?" is ambiguous.
+  - `"always"` — always, even for the pane's own repo.
+  - `"never"` — never; the label stays `#123 ✓`.
+- `repoName.format` — `"short"` *(default)* shows the repo name only (`workspace`); `"full"` shows `owner/name` (`mobile-club/workspace`).
+
+Changes take effect on the next refresh (switch panes or `herdr plugin action invoke gh-pr.refresh`).
 
 Refresh the focused pane's PR status on demand:
 
