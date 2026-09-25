@@ -86,6 +86,13 @@ async function prInfo(cwd: string, branch: string): Promise<PullRequest | null> 
   }
 }
 
+// Whether GitHub protects the branch (main, develop). The PR such a branch
+// heads, e.g. a release PR, is not the agent's work. Unpushed branches 404.
+async function isProtected(cwd: string, branch: string): Promise<boolean> {
+  const out = await $`gh api repos/{owner}/{repo}/branches/${branch} --jq .protected`.cwd(cwd).nothrow().quiet();
+  return out.exitCode === 0 && out.stdout.toString().trim() === "true";
+}
+
 // CI checks for the branch. gh pr checks exits non-zero when checks are
 // failing or pending, so ignore the exit code and parse the JSON regardless.
 async function prChecks(cwd: string, branch: string): Promise<Check[]> {
@@ -130,9 +137,12 @@ export async function run(targetPaneId?: string, force = false): Promise<void> {
     await setLabel(pane.paneId, refreshingLabel(previous));
   }
 
-  const pr = await prInfo(pane.cwd, branch);
-  if (pr === null) {
-    // Branch has no PR, show nothing rather than a stale label.
+  const [pr, branchProtected] = await Promise.all([
+    prInfo(pane.cwd, branch),
+    isProtected(pane.cwd, branch),
+  ]);
+  if (pr === null || branchProtected) {
+    // No PR for this agent's work, show nothing rather than a stale label.
     await clearLabel(pane.paneId);
     return;
   }
